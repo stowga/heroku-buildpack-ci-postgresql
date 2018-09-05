@@ -101,29 +101,27 @@ pg_ctl -l .pg.log -w start | indent
 psql -c "CREATE USER ${user} WITH SUPERUSER ENCRYPTED PASSWORD '${password}'" postgres | indent
 createdb --owner $user $DATABASE | indent
 DATABASE_URL="postgres://${user}:${password}@localhost:5432/${DATABASE}"
-# N.B.: we do not stop the server here because some buildpacks rely on
-# having a live database at DATABASE_URL in order to run the build
+# NOTE: postgres will be shutdown as soon as the buildpack is finished executing (no sidecar process allowed to exist)
 
-echo "export PGHOST=$PGHOST" >> $BUILDPACK_DIR/export
-echo "export DATABASE_URL=$DATABASE_URL" >> $BUILDPACK_DIR/export
-
-# setting .profile.d script for database startup
-echo "-----> Copying .profile.d/pg.sh to add postgresql binaries to PATH"
-mkdir -p $BUILD_DIR/.profile.d
-cat<<\EOF > $BUILD_DIR/.profile.d/pg-path.sh
+# set env and startup postgres in export
+# after this buildpack is done, postgres will be shutdown
+# a buildpack's test-compile sources export prior to execution
+cat<<EOF > $BUILDPACK_DIR/export
 PATH=$HOME/vendor/postgresql/bin:$PATH
-
+export PGHOST="$PGHOST"
+export DATABASE_URL="$DATABASE_URL"
 export PGHOST=/tmp
 export PGDATA=$HOME/vendor/postgresql/data
 
-if ! pg_ctl status >/dev/null;
-then
-  pg_ctl -l .pg.log -w start
-fi
+# always try to stop and start postgres
+# we try to stop so we ensure we are waiting for it to stop before trying to start it
+pg_ctl stop -w >/dev/null
+pg_ctl -l .pg.log -w start
 EOF
 
-cat<<EOF > $BUILD_DIR/.profile.d/pg-env.sh
-export DATABASE_URL="$DATABASE_URL"
-EOF
+# again, the postgres server is shut down after any buildpack that 
+# the user's test-command sources anything in profile.d prior to execution
+mkdir -p $BUILD_DIR/.profile.d
+cp $BUILDPACK_DIR/export $BUILD_DIR/.profile.d/pg.sh
 
 echo "-----> postgresql done"
