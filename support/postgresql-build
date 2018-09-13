@@ -15,6 +15,8 @@ CFLAGS='-fPIC -DLINUX_OOM_ADJ=0'
 
 apt-get install uuid-dev
 
+apt install postgresql-10-postgis-2.4
+
 # keep this in sync with https://devcenter.heroku.com/articles/heroku-ci-in-dyno-databases#restrictions
 ./configure --prefix=/app/vendor/postgresql \
             --enable-integer-datetimes \
