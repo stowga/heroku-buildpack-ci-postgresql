@@ -109,6 +109,7 @@ echo "export DATABASE_URL=$DATABASE_URL" >> $BUILDPACK_DIR/export
 
 # Copy postgis file to correct directory
 cp -a -n /app/.apt/usr/share/postgresql/10/. /app/vendor/postgresql/share/
+cp -a -n /app/.apt/usr/lib/postgresql/10/. /app/vendor/postgresql/lib/
 
 # setting .profile.d script for database startup
 echo "-----> Copying .profile.d/pg.sh to add postgresql binaries to PATH"
